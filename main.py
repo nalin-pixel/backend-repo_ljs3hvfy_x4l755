@@ -1,8 +1,12 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List
+from database import create_document
+from schemas import Inquiry
 
-app = FastAPI()
+app = FastAPI(title="Moventra Global Solutions API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,7 +18,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI Backend!"}
+    return {"message": "Moventra Global Solutions API running"}
 
 @app.get("/api/hello")
 def hello():
@@ -63,6 +67,19 @@ def test_database():
     response["database_name"] = "✅ Set" if os.getenv("DATABASE_NAME") else "❌ Not Set"
     
     return response
+
+# Inquiry endpoints
+class InquiryResponse(BaseModel):
+    success: bool
+    message: str
+
+@app.post("/api/inquiries", response_model=InquiryResponse)
+def create_inquiry(inquiry: Inquiry):
+    try:
+        inserted_id = create_document("inquiry", inquiry)
+        return {"success": True, "message": f"Inquiry received. Ref: {inserted_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
